@@ -223,7 +223,7 @@ paths:
                   averageScore:
                     type: number
         '400':
-          description: You have already rated this photo
+          description: You have already rated this photo or cannot rate your own photo
         '401':
           description: Authentication token missing
         '403':
@@ -280,8 +280,105 @@ paths:
                     uploadDate:
                       type: string
                       format: date-time
+                    isActive:
+                      type: boolean
         '500':
           description: Failed to fetch photos
+
+  /api/photos/next:
+    get:
+      summary: Get next photo for rating with filters
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: gender
+          schema:
+            type: string
+            enum: [male, female, other]
+          description: Filter by gender
+        - in: query
+          name: minAge
+          schema:
+            type: integer
+          description: Minimum age filter
+        - in: query
+          name: maxAge
+          schema:
+            type: integer
+          description: Maximum age filter
+      responses:
+        '200':
+          description: Next photo for rating
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  userId:
+                    type: string
+                  username:
+                    type: string
+                  imageData:
+                    type: string
+                  gender:
+                    type: string
+                  age:
+                    type: integer
+                  averageScore:
+                    type: number
+                  uploadDate:
+                    type: string
+                    format: date-time
+        '404':
+          description: No photos available for rating with the specified filters
+        '401':
+          description: Authentication token missing
+        '403':
+          description: Invalid token
+        '500':
+          description: Failed to fetch next photo
+
+  /api/photos/status:
+    post:
+      summary: Toggle photo active status for rating
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                photoId:
+                  type: string
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: Photo status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  photoId:
+                    type: string
+        '400':
+          description: Not enough points to activate photo
+        '401':
+          description: Authentication token missing
+        '403':
+          description: Invalid token or not authorized to modify photo
+        '404':
+          description: Photo not found
+        '500':
+          description: Failed to update photo status
 
   /api/stats:
     get:

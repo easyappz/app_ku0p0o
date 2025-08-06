@@ -12,6 +12,7 @@ const photoSchema = new mongoose.Schema({
     },
   ],
   averageScore: { type: Number, default: 0 },
+  isActive: { type: Boolean, default: false }, // Whether photo is in rating pool
   uploadDate: { type: Date, default: Date.now },
 });
 

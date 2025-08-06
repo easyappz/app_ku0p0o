@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   gender: { type: String, enum: ['male', 'female', 'other'], required: true },
   age: { type: Number, required: true },
-  points: { type: Number, default: 0 },
+  points: { type: Number, default: 10 },
   resetPasswordToken: { type: String },
   resetPasswordExpires: { type: Date },
 });

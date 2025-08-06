@@ -15,6 +15,8 @@ router.post('/reset-password', authController.resetPassword);
 router.post('/photos/upload', authenticateToken, photoController.uploadPhoto);
 router.post('/photos/rate', authenticateToken, photoController.ratePhoto);
 router.get('/photos', photoController.getPhotos);
+router.get('/photos/next', authenticateToken, photoController.getNextPhoto);
+router.post('/photos/status', authenticateToken, photoController.togglePhotoStatus);
 router.get('/stats', authenticateToken, photoController.getUserStats);
 
 // Basic routes

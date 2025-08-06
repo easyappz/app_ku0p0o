@@ -1,96 +1,100 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Layout from './components/Layout';
-import Home from './pages/Home';
-import Register from './pages/Register';
-import Login from './pages/Login';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import Profile from './pages/Profile';
-import UploadPhoto from './pages/UploadPhoto';
-import RatePhotos from './pages/RatePhotos';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { Layout, Menu, message } from 'antd';
+import { HomeOutlined, StarOutlined, BarChartOutlined } from '@ant-design/icons';
+import PointsDisplay from './components/PointsDisplay';
+import PhotoRating from './components/PhotoRating';
+import PhotoStats from './components/PhotoStats';
+import { getUserStats } from './api/photoApi';
+import './App.css';
+
+const { Header, Content, Sider } = Layout;
 
 const App = () => {
-  const ProtectedRoute = ({ children }) => {
-    const token = localStorage.getItem('token');
-    return token ? children : <Navigate to='/login' />;
+  const [points, setPoints] = useState(10);
+  const [userId, setUserId] = useState('placeholder-user-id'); // Replace with actual user ID from auth
+  const [selectedMenu, setSelectedMenu] = useState('rating');
+
+  useEffect(() => {
+    fetchUserStats();
+  }, []);
+
+  const fetchUserStats = async () => {
+    try {
+      const stats = await getUserStats();
+      setPoints(stats.points || 10); // Assuming points are part of stats response
+    } catch (error) {
+      message.error('Не удалось загрузить данные пользователя.');
+    }
   };
 
+  const handlePointsUpdate = (newPoints) => {
+    setPoints(newPoints);
+  };
+
+  const menuItems = [
+    {
+      key: 'rating',
+      icon: <StarOutlined />,
+      label: 'Оценить фото',
+    },
+    {
+      key: 'stats',
+      icon: <BarChartOutlined />,
+      label: 'Статистика',
+    },
+    {
+      key: 'home',
+      icon: <HomeOutlined />,
+      label: 'Главная',
+    },
+  ];
+
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path='/'
-          element={
-            <Layout>
-              <Home />
-            </Layout>
-          }
-        />
-        <Route
-          path='/register'
-          element={
-            <Layout>
-              <Register />
-            </Layout>
-          }
-        />
-        <Route
-          path='/login'
-          element={
-            <Layout>
-              <Login />
-            </Layout>
-          }
-        />
-        <Route
-          path='/forgot-password'
-          element={
-            <Layout>
-              <ForgotPassword />
-            </Layout>
-          }
-        />
-        <Route
-          path='/reset-password'
-          element={
-            <Layout>
-              <ResetPassword />
-            </Layout>
-          }
-        />
-        <Route
-          path='/profile'
-          element={
-            <Layout>
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            </Layout>
-          }
-        />
-        <Route
-          path='/upload'
-          element={
-            <Layout>
-              <ProtectedRoute>
-                <UploadPhoto />
-              </ProtectedRoute>
-            </Layout>
-          }
-        />
-        <Route
-          path='/rate'
-          element={
-            <Layout>
-              <ProtectedRoute>
-                <RatePhotos />
-              </ProtectedRoute>
-            </Layout>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+    <Router>
+      <Layout style={{ minHeight: '100vh' }}>
+        <Sider width={200} className="site-layout-background">
+          <Menu
+            mode="inline"
+            selectedKeys={[selectedMenu]}
+            onClick={({ key }) => setSelectedMenu(key)}
+            style={{ height: '100%', borderRight: 0 }}
+            items={menuItems}
+          />
+        </Sider>
+        <Layout style={{ padding: '0 24px 24px' }}>
+          <Header style={{ padding: 0, background: '#fff', textAlign: 'center' }}>
+            <h1>Приложение для оценки фото</h1>
+          </Header>
+          <Content
+            className="site-layout-background"
+            style={{
+              padding: 24,
+              margin: 0,
+              minHeight: 280,
+            }}
+          >
+            <PointsDisplay points={points} />
+            <Routes>
+              <Route
+                path="/rating"
+                element={
+                  <PhotoRating userPoints={points} onPointsUpdate={handlePointsUpdate} />
+                }
+              />
+              <Route
+                path="/stats"
+                element={<PhotoStats userId={userId} />}
+              />
+              <Route
+                path="/"
+                element={<div>Добро пожаловать! Выберите раздел в меню.</div>}
+              />
+            </Routes>
+          </Content>
+        </Layout>
+      </Layout>
+    </Router>
   );
 };
 

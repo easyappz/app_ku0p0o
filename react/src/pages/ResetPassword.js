@@ -1,68 +1,73 @@
-import React from 'react';
-import { Form, Input, Button, message, Typography } from 'antd';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { resetPassword } from '../api/auth';
-
-const { Title } = Typography;
+import React, { useState } from 'react';
+import { Form, Input, Button, Card, message } from 'antd';
+import { resetPassword } from '../api/authApi';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const ResetPassword = () => {
-  const [searchParams] = useSearchParams();
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
 
   const onFinish = async (values) => {
-    if (values.password !== values.confirmPassword) {
-      message.error('Пароли не совпадают');
-      return;
-    }
+    setLoading(true);
     try {
-      await resetPassword({
-        token,
-        newPassword: values.password,
-      });
+      await resetPassword({ token, newPassword: values.newPassword });
       message.success('Пароль успешно сброшен. Войдите с новым паролем.');
       navigate('/login');
     } catch (error) {
-      message.error(error.response?.data?.message || 'Ошибка при сбросе пароля');
+      message.error(error.response?.data?.message || 'Ошибка при сбросе пароля.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (!token) {
-    return (
-      <div style={{ textAlign: 'center', maxWidth: 400, margin: '0 auto' }}>
-        <Title level={2}>Ошибка</Title>
-        <p>Отсутствует токен для сброса пароля. Пожалуйста, запросите сброс пароля заново.</p>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ maxWidth: 400, margin: '0 auto' }}>
-      <Title level={2} style={{ textAlign: 'center' }}>
-        Новый пароль
-      </Title>
-      <Form name='reset-password' layout='vertical' onFinish={onFinish}>
+    <Card title="Новый пароль" style={{ maxWidth: 400, margin: '0 auto', marginTop: 50 }}>
+      <Form
+        name="resetPassword"
+        layout="vertical"
+        onFinish={onFinish}
+      >
         <Form.Item
-          name='password'
-          label='Новый пароль'
-          rules={[{ required: true, message: 'Введите новый пароль' }]}
+          name="newPassword"
+          label="Новый пароль"
+          rules={[{ required: true, message: 'Введите новый пароль', min: 6 }]}
         >
-          <Input.Password placeholder='Введите новый пароль' />
+          <Input.Password placeholder="Введите новый пароль" />
         </Form.Item>
+
         <Form.Item
-          name='confirmPassword'
-          label='Подтвердите пароль'
-          rules={[{ required: true, message: 'Подтвердите новый пароль' }]}
+          name="confirmPassword"
+          label="Подтвердите пароль"
+          dependencies={['newPassword']}
+          rules={[
+            { required: true, message: 'Подтвердите пароль' },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                if (!value || getFieldValue('newPassword') === value) {
+                  return Promise.resolve();
+                }
+                return Promise.reject(new Error('Пароли не совпадают'));
+              },
+            }),
+          ]}
         >
-          <Input.Password placeholder='Подтвердите новый пароль' />
+          <Input.Password placeholder="Подтвердите пароль" />
         </Form.Item>
+
         <Form.Item>
-          <Button type='primary' htmlType='submit' style={{ width: '100%' }}>
-            Сохранить
+          <Button type="primary" htmlType="submit" loading={loading} block>
+            Сбросить пароль
           </Button>
         </Form.Item>
       </Form>
-    </div>
+      <div style={{ textAlign: 'center' }}>
+        <Button type="link" onClick={() => navigate('/login')}>
+          Вернуться ко входу
+        </Button>
+      </div>
+    </Card>
   );
 };
 

@@ -1,93 +1,107 @@
 import React, { useState } from 'react';
-import { Form, Upload, Button, message, Select, Typography } from 'antd';
+import { Card, Upload, Button, message, Form, Select, InputNumber } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
-import { uploadPhoto } from '../api/photos';
+import { uploadPhoto } from '../api/photoApi';
 import { useNavigate } from 'react-router-dom';
 
 const { Option } = Select;
-const { Title } = Typography;
 
-const UploadPhoto = () => {
+const UploadPhoto = ({ userPoints, onPointsUpdate }) => {
   const [fileList, setFileList] = useState([]);
-  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const onFinish = async (values) => {
     if (fileList.length === 0) {
-      message.error('Пожалуйста, загрузите фотографию');
+      message.error('Пожалуйста, загрузите фото.');
       return;
     }
 
-    const file = fileList[0];
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      try {
-        await uploadPhoto({
-          imageData: reader.result,
-          gender: values.gender,
-          age: Number(values.age),
-        });
-        message.success('Фотография успешно загружена');
-        navigate('/profile');
-      } catch (error) {
-        message.error(error.response?.data?.message || 'Ошибка при загрузке фото');
-      }
-    };
-    reader.readAsDataURL(file.originFileObj);
+    setLoading(true);
+    try {
+      const file = fileList[0].originFileObj;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const imageData = e.target.result;
+        await uploadPhoto({ ...values, imageData });
+        message.success('Фото успешно загружено!');
+        onPointsUpdate(userPoints - 10); // Assuming 10 points are deducted for upload
+        navigate('/stats');
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Ошибка при загрузке фото.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const uploadProps = {
-    onRemove: () => {
-      setFileList([]);
+    onRemove: (file) => {
+      setFileList(fileList.filter((item) => item.uid !== file.uid));
     },
     beforeUpload: (file) => {
-      if (file.size > 1024 * 1024) {
-        message.error('Размер изображения не должен превышать 1MB');
+      const isImage = file.type.startsWith('image/');
+      if (!isImage) {
+        message.error('Можно загружать только изображения!');
+        return false;
+      }
+      const isLt1M = file.size / 1024 / 1024 < 1;
+      if (!isLt1M) {
+        message.error('Размер изображения должен быть меньше 1MB!');
         return false;
       }
       setFileList([file]);
       return false;
     },
     fileList,
-    accept: 'image/*',
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto' }}>
-      <Title level={2} style={{ textAlign: 'center' }}>
-        Загрузить фотографию
-      </Title>
-      <Form form={form} layout='vertical' onFinish={onFinish}>
-        <Form.Item label='Фотография'>
-          <Upload {...uploadProps}>
-            <Button icon={<UploadOutlined />}>Выбрать файл</Button>
+    <Card title="Загрузить фото" style={{ maxWidth: 600, margin: '0 auto', marginTop: 20 }}>
+      <Form
+        name="uploadPhoto"
+        layout="vertical"
+        onFinish={onFinish}
+        initialValues={{ gender: 'male', age: 25 }}
+      >
+        <Form.Item
+          name="upload"
+          label="Выберите фото (до 1MB)"
+          rules={[{ required: true, message: 'Загрузите фото' }]}
+        >
+          <Upload {...uploadProps} accept="image/*">
+            <Button icon={<UploadOutlined />}>Выбрать фото</Button>
           </Upload>
         </Form.Item>
+
         <Form.Item
-          name='gender'
-          label='Пол'
+          name="gender"
+          label="Пол на фото"
           rules={[{ required: true, message: 'Выберите пол' }]}
         >
-          <Select placeholder='Выберите пол'>
-            <Option value='male'>Мужчина</Option>
-            <Option value='female'>Женщина</Option>
-            <Option value='other'>Другое</Option>
+          <Select placeholder="Выберите пол">
+            <Option value="male">Мужской</Option>
+            <Option value="female">Женский</Option>
+            <Option value="other">Другое</Option>
           </Select>
         </Form.Item>
+
         <Form.Item
-          name='age'
-          label='Возраст'
+          name="age"
+          label="Возраст на фото"
           rules={[{ required: true, message: 'Введите возраст' }]}
         >
-          <input type='number' min={18} max={100} style={{ width: '100%', padding: '4px 11px', border: '1px solid #d9d9d9', borderRadius: 2 }} placeholder='Введите возраст' />
+          <InputNumber min={18} max={100} placeholder="Введите возраст" />
         </Form.Item>
+
         <Form.Item>
-          <Button type='primary' htmlType='submit' style={{ width: '100%' }}>
-            Загрузить
+          <Button type="primary" htmlType="submit" loading={loading} block>
+            Загрузить фото (стоимость: 10 баллов)
           </Button>
         </Form.Item>
       </Form>
-    </div>
+    </Card>
   );
 };
 

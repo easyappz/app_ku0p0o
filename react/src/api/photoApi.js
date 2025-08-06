@@ -36,3 +36,8 @@ export const getPhotos = async (filters = {}) => {
   const response = await instance.get('/api/photos', { params });
   return response.data;
 };
+
+export const uploadPhoto = async (data) => {
+  const response = await instance.post('/api/photos/upload', data);
+  return response.data;
+};

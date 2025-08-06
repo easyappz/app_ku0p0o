@@ -1,83 +1,65 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Statistic, Row, Col, Card, List, Switch, message } from 'antd';
-import { getStats, getPhotos, togglePhotoStatus } from '../api/photos';
-import { getStats as getUserStats } from '../api/stats';
-import PhotoCard from '../components/PhotoCard';
-
-const { Title } = Typography;
+import { Card, Descriptions, Button, message } from 'antd';
+import { getUserStats } from '../api/photoApi';
+import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
-  const [stats, setStats] = useState({ totalPhotos: 0, totalRatings: 0, averageScore: 0 });
-  const [photos, setPhotos] = useState([]);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const statsData = await getUserStats();
-        setStats(statsData);
-        const photosData = await getPhotos();
-        setPhotos(photosData.filter((photo) => photo.userId === localStorage.getItem('userId')));
-      } catch (error) {
-        message.error('Ошибка при загрузке данных профиля');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    fetchUserData();
   }, []);
 
-  const handleToggleStatus = async (photoId, isActive) => {
+  const fetchUserData = async () => {
+    setLoading(true);
     try {
-      await togglePhotoStatus({ photoId, isActive });
-      setPhotos(photos.map((photo) =>
-        photo.id === photoId ? { ...photo, isActive } : photo
-      ));
-      message.success('Статус фото обновлен');
+      // Assuming user data is stored in localStorage or fetched from an endpoint
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+      // Mock user data for now
+      const stats = await getUserStats();
+      setUser({
+        email: 'user@example.com',
+        username: 'Пользователь',
+        gender: 'male',
+        age: 25,
+        points: stats.points || 0,
+      });
     } catch (error) {
-      message.error(error.response?.data?.message || 'Ошибка при обновлении статуса');
+      message.error('Не удалось загрузить данные профиля.');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    message.success('Вы вышли из системы.');
+    navigate('/login');
+  };
+
   return (
-    <div>
-      <Title level={2}>Профиль пользователя</Title>
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={8}>
-          <Statistic title='Всего фото' value={stats.totalPhotos} loading={loading} />
-        </Col>
-        <Col span={8}>
-          <Statistic title='Всего оценок' value={stats.totalRatings} loading={loading} />
-        </Col>
-        <Col span={8}>
-          <Statistic
-            title='Средняя оценка'
-            value={stats.averageScore.toFixed(1)}
-            loading={loading}
-          />
-        </Col>
-      </Row>
-      <Title level={3}>Ваши фотографии</Title>
-      <List
-        grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4 }}
-        dataSource={photos}
-        loading={loading}
-        renderItem={(photo) => (
-          <List.Item>
-            <Card>
-              <PhotoCard photo={photo} />
-              <div style={{ marginTop: 16, textAlign: 'center' }}>
-                <span style={{ marginRight: 8 }}>Доступно для оценки:</span>
-                <Switch
-                  checked={photo.isActive}
-                  onChange={(checked) => handleToggleStatus(photo.id, checked)}
-                />
-              </div>
-            </Card>
-          </List.Item>
-        )}
-      />
-    </div>
+    <Card title="Профиль пользователя" loading={loading} style={{ maxWidth: 600, margin: '0 auto', marginTop: 20 }}>
+      {user && (
+        <Descriptions bordered column={1}>
+          <Descriptions.Item label="Email">{user.email}</Descriptions.Item>
+          <Descriptions.Item label="Имя пользователя">{user.username}</Descriptions.Item>
+          <Descriptions.Item label="Пол">{
+            user.gender === 'male' ? 'Мужской' : user.gender === 'female' ? 'Женский' : 'Другое'
+          }</Descriptions.Item>
+          <Descriptions.Item label="Возраст">{user.age}</Descriptions.Item>
+          <Descriptions.Item label="Баллы">{user.points}</Descriptions.Item>
+        </Descriptions>
+      )}
+      <Button type="primary" danger onClick={handleLogout} style={{ marginTop: 16 }}>
+        Выйти
+      </Button>
+    </Card>
   );
 };
 

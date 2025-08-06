@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, message } from 'antd';
-import { getPhotos } from '../api/photoApi';
+import { Card, Table, message, Switch } from 'antd';
+import { getPhotos, togglePhotoStatus } from '../api/photoApi';
 
 const PhotoStats = ({ userId }) => {
   const [photos, setPhotos] = useState([]);
@@ -24,6 +24,18 @@ const PhotoStats = ({ userId }) => {
     }
   };
 
+  const handleToggleStatus = async (photoId, isActive) => {
+    try {
+      await togglePhotoStatus(photoId, isActive);
+      message.success(`Фото ${isActive ? 'активировано' : 'деактивировано'} для оценки.`);
+      setPhotos(photos.map(photo => 
+        photo.id === photoId ? { ...photo, isActive } : photo
+      ));
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Не удалось изменить статус фото.');
+    }
+  };
+
   const columns = [
     {
       title: 'Фото',
@@ -40,16 +52,21 @@ const PhotoStats = ({ userId }) => {
       render: (text) => text.toFixed(2),
     },
     {
-      title: 'Пол оценивших',
-      dataIndex: 'ratingGender',
-      key: 'ratingGender',
-      render: () => 'Данные недоступны', // Placeholder, as detailed stats per rating are not in API
+      title: 'Активно для оценки',
+      dataIndex: 'isActive',
+      key: 'isActive',
+      render: (isActive, record) => (
+        <Switch 
+          checked={isActive} 
+          onChange={(checked) => handleToggleStatus(record.id, checked)} 
+        />
+      ),
     },
     {
-      title: 'Возраст оценивших',
-      dataIndex: 'ratingAge',
-      key: 'ratingAge',
-      render: () => 'Данные недоступны', // Placeholder, as detailed stats per rating are not in API
+      title: 'Дата загрузки',
+      dataIndex: 'uploadDate',
+      key: 'uploadDate',
+      render: (text) => new Date(text).toLocaleDateString(),
     },
   ];
 
